@@ -52,6 +52,10 @@ export function insertMarkdownSyntax(
       insertion = `*${selected || 'italic text'}*`;
       cursorOffset = selected ? insertion.length : 1;
       break;
+    case 'strikethrough':
+      insertion = `~~${selected || 'strikethrough'}~~`;
+      cursorOffset = selected ? insertion.length : 2;
+      break;
     case 'h1':
       insertion = `\n# ${selected || 'Heading 1'}\n`;
       cursorOffset = insertion.length;
