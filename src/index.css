@@ -1,69 +1,70 @@
 @import "tailwindcss";
 
-/* ── Dark mode variables ─────────────────────────────────── */
+/* ── Dark mode ─────────────────────────────────────────────── */
 .dark {
   color-scheme: dark;
 }
 
-/* ── Markdown Preview Styles ─────────────────────────────── */
-.markdown-preview {
-  color: #374151;
-  line-height: 1.7;
+/* ── Global ────────────────────────────────────────────────── */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
+textarea:focus { outline: none; }
+
+::selection {
+  background: rgba(119, 25, 170, 0.2);
+}
+
+.dark ::selection {
+  background: rgba(162, 89, 255, 0.3);
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+.dark ::-webkit-scrollbar-thumb { background: #4b5563; }
+
+/* ── Markdown Preview ──────────────────────────────────────── */
 .markdown-preview h1 {
   font-size: 1.75em;
   font-weight: 700;
   color: #1a1a1a;
-  margin: 1.5em 0 0.5em;
+  margin: 1em 0 0.5em;
   padding-bottom: 0.3em;
-  border-bottom: 2px solid #2b579a;
+  border-bottom: 2px solid #7719AA;
 }
 
 .markdown-preview h2 {
   font-size: 1.4em;
   font-weight: 600;
-  color: #2b579a;
-  margin: 1.25em 0 0.5em;
-  padding-bottom: 0.2em;
-  border-bottom: 1px solid #e5e7eb;
+  color: #7719AA;
+  margin: 0.8em 0 0.4em;
 }
 
 .markdown-preview h3 {
   font-size: 1.15em;
   font-weight: 600;
-  color: #374151;
-  margin: 1em 0 0.5em;
+  color: #323130;
+  margin: 0.6em 0 0.3em;
 }
 
-.markdown-preview h4, .markdown-preview h5, .markdown-preview h6 {
-  font-weight: 600;
-  color: #4b5563;
-  margin: 0.75em 0 0.4em;
-}
+.markdown-preview p { margin: 0.5em 0; line-height: 1.7; }
 
-.markdown-preview p {
-  margin: 0.5em 0;
-}
-
-.markdown-preview ul,
-.markdown-preview ol {
+.markdown-preview ul, .markdown-preview ol {
   margin: 0.5em 0;
   padding-left: 1.5em;
 }
 
 .markdown-preview ul { list-style-type: disc; }
 .markdown-preview ol { list-style-type: decimal; }
-
-.markdown-preview li {
-  margin: 0.25em 0;
-  line-height: 1.6;
-}
-
-.markdown-preview li input[type="checkbox"] {
-  margin-right: 0.5em;
-  accent-color: #2b579a;
-}
+.markdown-preview li { margin: 0.25em 0; line-height: 1.6; }
 
 .markdown-preview code {
   background: #f1f5f9;
@@ -71,7 +72,7 @@
   padding: 0.15em 0.4em;
   border-radius: 3px;
   font-size: 0.88em;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: 'Consolas', 'Monaco', monospace;
 }
 
 .markdown-preview pre {
@@ -81,19 +82,16 @@
   border-radius: 6px;
   overflow-x: auto;
   margin: 0.75em 0;
-  border: 1px solid #334155;
 }
 
 .markdown-preview pre code {
   background: transparent;
   color: inherit;
   padding: 0;
-  font-size: 0.88em;
-  line-height: 1.5;
 }
 
 .markdown-preview blockquote {
-  border-left: 3px solid #2b579a;
+  border-left: 3px solid #7719AA;
   padding: 0.5em 1em;
   margin: 0.75em 0;
   background: #f8fafc;
@@ -102,13 +100,8 @@
   border-radius: 0 4px 4px 0;
 }
 
-.markdown-preview a {
-  color: #2b579a;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.markdown-preview a:hover { color: #1e3f6f; }
+.markdown-preview a { color: #7719AA; text-decoration: underline; }
+.markdown-preview a:hover { color: #5a1080; }
 
 .markdown-preview hr {
   border: none;
@@ -116,15 +109,7 @@
   margin: 1.5em 0;
 }
 
-.markdown-preview strong { font-weight: 700; color: #111827; }
-.markdown-preview em { font-style: italic; }
-.markdown-preview del { text-decoration: line-through; color: #9ca3af; }
-
-.markdown-preview img {
-  max-width: 100%;
-  border-radius: 4px;
-  margin: 0.5em 0;
-}
+.markdown-preview strong { font-weight: 700; }
 
 .markdown-preview table {
   width: 100%;
@@ -133,8 +118,7 @@
   font-size: 0.9em;
 }
 
-.markdown-preview th,
-.markdown-preview td {
+.markdown-preview th, .markdown-preview td {
   border: 1px solid #e5e7eb;
   padding: 0.5em 0.75em;
   text-align: left;
@@ -143,117 +127,36 @@
 .markdown-preview th {
   background: #f8fafc;
   font-weight: 600;
-  color: #1f2937;
 }
 
-.markdown-preview tr:nth-child(even) {
-  background: #fafafa;
+/* Dark mode preview */
+.dark .markdown-preview h1 { color: #f3f4f6; border-bottom-color: #A259FF; }
+.dark .markdown-preview h2 { color: #A259FF; }
+.dark .markdown-preview h3 { color: #d1d5db; }
+.dark .markdown-preview p, .dark .markdown-preview li { color: #d1d5db; }
+.dark .markdown-preview code { background: #374151; color: #f472b6; }
+.dark .markdown-preview pre { background: #111827; }
+.dark .markdown-preview blockquote { background: #1f2937; border-left-color: #A259FF; color: #9ca3af; }
+.dark .markdown-preview a { color: #A259FF; }
+.dark .markdown-preview th { background: #1f2937; color: #e5e7eb; }
+.dark .markdown-preview th, .dark .markdown-preview td { border-color: #374151; }
+.dark .markdown-preview hr { border-top-color: #374151; }
+
+/* ── Details/Summary ───────────────────────────────────────── */
+details summary::-webkit-details-marker { display: none; }
+details summary::before {
+  content: '▶';
+  display: inline-block;
+  margin-right: 0.5em;
+  transition: transform 0.2s;
+  font-size: 0.7em;
+}
+details[open] summary::before {
+  transform: rotate(90deg);
 }
 
-/* ── Dark mode preview ───────────────────────────────────── */
-.dark-preview {
-  color: #d1d5db !important;
-}
-
-.dark-preview h1 {
-  color: #f3f4f6;
-  border-bottom-color: #4b84d0;
-}
-
-.dark-preview h2 {
-  color: #60a5fa;
-  border-bottom-color: #374151;
-}
-
-.dark-preview h3 { color: #d1d5db; }
-.dark-preview h4, .dark-preview h5, .dark-preview h6 { color: #9ca3af; }
-
-.dark-preview code {
-  background: #374151;
-  color: #f472b6;
-}
-
-.dark-preview pre {
-  background: #111827;
-  border-color: #1f2937;
-}
-
-.dark-preview blockquote {
-  background: #1f2937;
-  border-left-color: #4b84d0;
-  color: #9ca3af;
-}
-
-.dark-preview a { color: #60a5fa; }
-.dark-preview a:hover { color: #93c5fd; }
-
-.dark-preview hr { border-top-color: #374151; }
-.dark-preview strong { color: #f9fafb; }
-.dark-preview del { color: #6b7280; }
-
-.dark-preview th {
-  background: #1f2937;
-  color: #e5e7eb;
-}
-
-.dark-preview th,
-.dark-preview td {
-  border-color: #374151;
-}
-
-.dark-preview tr:nth-child(even) {
-  background: #111827;
-}
-
-/* ── Scrollbar ───────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
-.dark ::-webkit-scrollbar-thumb { background: #4b5563; }
-.dark ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-
-/* ── Global ──────────────────────────────────────────────── */
-html, body, #root {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-textarea:focus { outline: none; }
-
-::selection {
-  background: rgba(43, 87, 154, 0.2);
-}
-
-.dark ::selection {
-  background: rgba(96, 165, 250, 0.3);
-}
-
-/* ── Animations ──────────────────────────────────────────── */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideIn {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
-}
-
-/* ── Print styles ────────────────────────────────────────── */
-@media print {
-  .no-print { display: none !important; }
-  .markdown-preview { padding: 0 !important; }
-}
-
-/* ── Focus visible ───────────────────────────────────────── */
+/* ── Focus visible ─────────────────────────────────────────── */
 *:focus-visible {
-  outline: 2px solid #2b579a;
+  outline: 2px solid #7719AA;
   outline-offset: 1px;
 }
-
-/* ── Thin scrollbar utility ──────────────────────────────── */
-.scrollbar-thin::-webkit-scrollbar { height: 4px; }
