@@ -7,18 +7,6 @@
   },
   "android": {
     "allowMixedContent": false,
-    "backgroundColor": "#ffffff",
-    "buildOptions": {
-      "keystorePath": null,
-      "keystorePassword": null,
-      "keystoreAlias": null,
-      "keystoreAliasPassword": null,
-      "releaseType": "APK"
-    }
-  },
-  "plugins": {
-    "SplashScreen": {
-      "launchShowDuration": 0
-    }
+    "backgroundColor": "#ffffff"
   }
 }
