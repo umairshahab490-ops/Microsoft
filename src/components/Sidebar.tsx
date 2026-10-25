@@ -1,285 +1,409 @@
-import React, { useMemo, useRef, useEffect, useState } from 'react';
-import { Search, X, Pin, Star, Plus, ChevronDown, ChevronRight, FolderOpen, Tag, MoreVertical, ArrowUpDown, Archive, Trash2, CheckSquare, Square } from 'lucide-react';
-import { Note, Folder, AppState, SortBy, SortDir } from '../types';
 import { formatDate } from '../utils';
+import { Notebook, Section, AppState } from '../types';
+import { useState, useRef, useEffect } from 'react';
 
 interface SidebarProps {
-  notes: Note[];
-  trash: Note[];
-  folders: Folder[];
-  allTags: string[];
   state: AppState;
-  onToggle: () => void;
-  onSearchChange: (q: string) => void;
-  onSelectNote: (id: string) => void;
-  onSelectFolder: (id: string) => void;
-  onSelectTag: (tag: string | null) => void;
-  onToggleFavorites: () => void;
-  onToggleArchived: () => void;
-  onToggleTrash: () => void;
-  onSortChange: (by: SortBy, dir: SortDir) => void;
-  onCreateFolder: (name: string) => void;
-  onDeleteFolder: (id: string) => void;
-  onTogglePin: (id: string) => void;
-  onToggleFavorite: (id: string) => void;
-  onDeleteNote: (id: string) => void;
-  onDuplicateNote: (id: string) => void;
-  onRestoreNote: (id: string) => void;
-  onEmptyTrash: () => void;
-  onToggleSelect: (id: string) => void;
-  onSelectAll: () => void;
-  onClearSelection: () => void;
-  onBulkDelete: () => void;
-  onBulkArchive: () => void;
-  onBulkTag: (tag: string) => void;
+  dispatch: React.Dispatch<any>;
+  activeNotebook?: Notebook;
+  activeSection?: Section;
 }
 
-const NoteItem: React.FC<{
-  note: Note; isActive: boolean; isSelected: boolean;
-  onSelect: () => void; onTogglePin: () => void; onToggleFavorite: () => void;
-  onDelete: () => void; onDuplicate: () => void; onToggleSelect: () => void;
-}> = React.memo(({ note, isActive, isSelected, onSelect, onTogglePin, onToggleFavorite, onDelete, onDuplicate, onToggleSelect }) => {
-  const [showMenu, setShowMenu] = useState(false);
-  return (
-    <div onClick={onSelect}
-      className={`group relative px-3 py-2 cursor-pointer border-b border-gray-50 dark:border-gray-700/50 transition-all duration-100 ${
-        isActive ? 'bg-blue-50 dark:bg-blue-900/20 border-l-[3px] border-l-blue-600' : 'hover:bg-gray-50 dark:hover:bg-gray-800 border-l-[3px] border-l-transparent'
-      }`}>
-      <div className="flex items-start gap-2">
-        <button onClick={(e) => { e.stopPropagation(); onToggleSelect(); }} className="mt-0.5 flex-shrink-0">
-          {isSelected ? <CheckSquare size={12} className="text-blue-600" /> : <Square size={12} className="text-gray-300" />}
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1">
-            {note.pinned && <Pin size={10} className="text-blue-600 flex-shrink-0" />}
-            {note.favorite && <Star size={10} className="text-yellow-500 fill-yellow-500 flex-shrink-0" />}
-            <h3 className={`text-sm font-medium truncate ${isActive ? 'text-blue-700 dark:text-blue-300' : 'text-gray-800 dark:text-gray-200'}`}>
-              {note.title || 'Untitled'}
-            </h3>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {note.content.replace(/[#*`>\-\[\]]/g, '').slice(0, 80) || 'Empty note'}
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-[10px] text-gray-400">{formatDate(note.updatedAt)}</span>
-            {note.tags.length > 0 && (
-              <div className="flex gap-1">
-                {note.tags.slice(0, 2).map(t => (
-                  <span key={t} className="text-[9px] px-1 py-0 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded">{t}</span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        <button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-          <MoreVertical size={12} className="text-gray-400" />
-        </button>
-      </div>
-      {showMenu && (
-        <div className="absolute right-2 top-8 z-50 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded shadow-lg py-1 min-w-[140px]">
-          <button onClick={(e) => { e.stopPropagation(); onTogglePin(); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"><Pin size={12} /> {note.pinned ? 'Unpin' : 'Pin'}</button>
-          <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"><Star size={12} /> {note.favorite ? 'Unfavorite' : 'Favorite'}</button>
-          <button onClick={(e) => { e.stopPropagation(); onDuplicate(); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2"><Plus size={12} /> Duplicate</button>
-          <hr className="my-1 dark:border-gray-600" />
-          <button onClick={(e) => { e.stopPropagation(); onDelete(); setShowMenu(false); }} className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"><Trash2 size={12} /> Delete</button>
-        </div>
-      )}
-    </div>
-  );
-});
+const COLORS = ['#7719AA', '#A259FF', '#2B579A', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
 
-const Sidebar: React.FC<SidebarProps> = (props) => {
-  const { notes, trash, folders, allTags, state, onToggle, onSearchChange, onSelectNote, onSelectFolder, onSelectTag, onToggleFavorites, onToggleArchived, onToggleTrash, onSortChange, onCreateFolder, onDeleteFolder, onTogglePin, onToggleFavorite, onDeleteNote, onDuplicateNote, onRestoreNote, onEmptyTrash, onToggleSelect, onSelectAll, onClearSelection, onBulkDelete, onBulkArchive, onBulkTag } = props;
-  const [showSortMenu, setShowSortMenu] = useState(false);
-  const [showNewFolder, setShowNewFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [expandedSections, setExpandedSections] = useState({ folders: true, tags: true });
-  const [bulkTagInput, setBulkTagInput] = useState('');
-  const activeNoteRef = useRef<HTMLDivElement | null>(null);
+export default function Sidebar({ state, dispatch, activeNotebook, activeSection }: SidebarProps) {
+  const [expandedNotebooks, setExpandedNotebooks] = useState<Set<string>>(new Set([state.notebooks[0]?.id]));
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [contextMenu, setContextMenu] = useState<{ id: string; type: 'notebook' | 'section' | 'page'; x: number; y: number } | null>(null);
+  const [showColorPicker, setShowColorPicker] = useState<{ id: string; type: 'notebook' | 'section' | 'page' } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (activeNoteRef.current) activeNoteRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [state.activeNoteId]);
+    if (editingId && inputRef.current) inputRef.current.focus();
+  }, [editingId]);
 
-  const folderCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: notes.length };
-    notes.forEach(n => { counts[n.folderId] = (counts[n.folderId] || 0) + 1; });
-    return counts;
-  }, [notes]);
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
 
-  const displayNotes = state.showTrash ? trash : notes;
+  const toggleNotebook = (id: string) => {
+    setExpandedNotebooks(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const startRename = (id: string, currentName: string) => {
+    setEditingId(id);
+    setEditValue(currentName);
+    setContextMenu(null);
+  };
+
+  const commitRename = () => {
+    if (!editingId || !editValue.trim()) { setEditingId(null); return; }
+    // Find what type this ID belongs to
+    for (const nb of state.notebooks) {
+      if (nb.id === editingId) {
+        dispatch({ type: 'UPDATE_NOTEBOOK', id: editingId, updates: { name: editValue.trim() } });
+        setEditingId(null); return;
+      }
+      for (const sec of nb.sections) {
+        if (sec.id === editingId) {
+          dispatch({ type: 'UPDATE_SECTION', notebookId: nb.id, sectionId: editingId, updates: { name: editValue.trim() } });
+          setEditingId(null); return;
+        }
+        for (const pg of sec.pages) {
+          if (pg.id === editingId) {
+            dispatch({ type: 'UPDATE_PAGE', notebookId: nb.id, sectionId: sec.id, pageId: editingId, updates: { title: editValue.trim() } });
+            setEditingId(null); return;
+          }
+        }
+      }
+    }
+    setEditingId(null);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, id: string, type: 'notebook' | 'section' | 'page') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ id, type, x: e.clientX, y: e.clientY });
+  };
+
+  const handleLongPress = (id: string, type: 'notebook' | 'section' | 'page') => {
+    setContextMenu({ id, type, x: window.innerWidth / 2, y: window.innerHeight / 2 });
+  };
 
   return (
     <>
-      <button onClick={onToggle} className="md:hidden fixed bottom-4 left-4 z-50 p-3 rounded-full shadow-lg text-white" style={{ background: state.accentColor }}>
-        <FolderOpen size={18} />
-      </button>
-      {state.sidebarOpen && <div className="md:hidden fixed inset-0 bg-black/20 z-30" onClick={onToggle} />}
-      <aside className={`fixed md:relative z-40 h-full w-[280px] bg-white dark:bg-[#252525] border-r border-gray-200 dark:border-gray-700 flex flex-col transition-transform duration-200 ${
-        state.sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-      }`}>
-        {/* Search */}
-        <div className="p-2 border-b border-gray-100 dark:border-gray-700">
-          <div className="relative">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" value={state.searchQuery} onChange={e => onSearchChange(e.target.value)}
-              placeholder="Search notes... (Ctrl+F)" className="w-full pl-8 pr-7 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded focus:outline-none focus:border-blue-500 bg-gray-50 dark:bg-gray-800 dark:text-white" id="search-input" />
-            {state.searchQuery && <button onClick={() => onSearchChange('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={13} /></button>}
-          </div>
-        </div>
+      {/* Mobile overlay */}
+      {state.sidebarOpen && (
+        <div className="md:hidden fixed inset-0 bg-black/20 z-30" onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })} />
+      )}
 
-        {/* Quick filters */}
-        <div className="flex items-center gap-1 px-2 py-1.5 border-b border-gray-100 dark:border-gray-700">
-          <button onClick={onToggleFavorites} className={`flex items-center gap-1 px-2 py-1 text-[10px] rounded ${state.showFavorites ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-            <Star size={11} className={state.showFavorites ? 'fill-yellow-500' : ''} /> Favorites
-          </button>
-          <button onClick={onToggleArchived} className={`flex items-center gap-1 px-2 py-1 text-[10px] rounded ${state.showArchived ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-            <Archive size={11} /> Archived
-          </button>
-          <button onClick={onToggleTrash} className={`flex items-center gap-1 px-2 py-1 text-[10px] rounded ${state.showTrash ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-            <Trash2 size={11} /> Trash ({trash.length})
-          </button>
-          <div className="flex-1" />
-          <div className="relative">
-            <button onClick={() => setShowSortMenu(!showSortMenu)} className="flex items-center gap-1 px-2 py-1 text-[10px] text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
-              <ArrowUpDown size={11} />
+      <aside className={`fixed md:relative z-40 h-full transition-all duration-200 ${
+        state.sidebarOpen ? 'w-80 translate-x-0' : 'w-0 -translate-x-full md:w-0 md:-translate-x-full'
+      } overflow-hidden flex-shrink-0`}>
+        <div className="h-full w-80 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-r border-white/20 dark:border-gray-700/50 flex flex-col">
+          {/* Search */}
+          <div className="p-3 border-b border-gray-200/50 dark:border-gray-700/50">
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={state.searchQuery}
+                onChange={e => dispatch({ type: 'SET_SEARCH', query: e.target.value })}
+                placeholder="Search all notes..."
+                className="w-full pl-9 pr-3 py-2 text-sm bg-white/50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 dark:text-white placeholder-gray-400"
+              />
+            </div>
+          </div>
+
+          {/* Notebooks list */}
+          <div className="flex-1 overflow-y-auto p-2">
+            {/* Add notebook button */}
+            <button
+              onClick={() => {
+                const name = prompt('Notebook name:');
+                if (name?.trim()) {
+                  dispatch({ type: 'CREATE_NOTEBOOK', name: name.trim(), color: COLORS[state.notebooks.length % COLORS.length] });
+                }
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 mb-2 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New Notebook
             </button>
-            {showSortMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded shadow-lg py-1 z-50 min-w-[140px]">
-                {(['updatedAt', 'createdAt', 'title'] as const).map(s => (
-                  <button key={s} onClick={() => { onSortChange(s, state.sortDir); setShowSortMenu(false); }}
-                    className={`w-full px-3 py-1 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-600 ${state.sortBy === s ? 'text-blue-600 font-medium' : ''}`}>
-                    {s === 'updatedAt' ? 'Last modified' : s === 'createdAt' ? 'Date created' : 'Title'}
-                  </button>
-                ))}
-                <hr className="my-1 dark:border-gray-600" />
-                <button onClick={() => { onSortChange(state.sortBy, state.sortDir === 'asc' ? 'desc' : 'asc'); setShowSortMenu(false); }}
-                  className="w-full px-3 py-1 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-600">
-                  {state.sortDir === 'asc' ? '↓ Ascending' : '↑ Descending'}
-                </button>
-              </div>
+
+            {/* Search results */}
+            {state.searchQuery.trim() && (
+              <SearchResults state={state} dispatch={dispatch} query={state.searchQuery} />
             )}
-          </div>
-        </div>
 
-        {/* Bulk actions bar */}
-        {state.selectedNoteIds.length > 0 && !state.showTrash && (
-          <div className="flex items-center gap-1 px-2 py-1.5 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800">
-            <span className="text-[10px] text-blue-700 dark:text-blue-300 font-medium">{state.selectedNoteIds.length} selected</span>
-            <div className="flex-1" />
-            <button onClick={onBulkArchive} className="px-1.5 py-0.5 text-[10px] bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded hover:bg-gray-50">Archive</button>
-            <button onClick={onBulkDelete} className="px-1.5 py-0.5 text-[10px] bg-red-50 dark:bg-red-900/20 text-red-600 border border-red-200 dark:border-red-800 rounded hover:bg-red-100">Delete</button>
-            <button onClick={onClearSelection} className="px-1.5 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">Clear</button>
-          </div>
-        )}
-
-        {/* Folders */}
-        {!state.showTrash && (
-          <div className="border-b border-gray-100 dark:border-gray-700">
-            <button onClick={() => setExpandedSections(p => ({ ...p, folders: !p.folders }))}
-              className="w-full flex items-center gap-1 px-3 py-1.5 text-[10px] text-gray-400 uppercase tracking-wider hover:bg-gray-50 dark:hover:bg-gray-800">
-              {expandedSections.folders ? <ChevronDown size={12} /> : <ChevronRight size={12} />} Folders
-            </button>
-            {expandedSections.folders && (
-              <div className="px-1 pb-1">
-                {folders.map(f => (
-                  <button key={f.id} onClick={() => onSelectFolder(f.id)}
-                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm rounded transition-colors ${
-                      state.activeFolderId === f.id && !state.activeTag && !state.showFavorites && !state.showArchived
-                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                    }`}>
-                    <span className="text-sm">{f.icon}</span>
-                    <span className="flex-1 text-left truncate">{f.name}</span>
-                    <span className="text-[10px] text-gray-400">{folderCounts[f.id] || 0}</span>
+            {/* Notebooks */}
+            {!state.searchQuery.trim() && state.notebooks.map(notebook => (
+              <div key={notebook.id} className="mb-1">
+                {/* Notebook header */}
+                <div
+                  className={`flex items-center gap-2 px-2 py-2 rounded-xl cursor-pointer transition-colors ${
+                    state.activeNotebookId === notebook.id ? 'bg-purple-50 dark:bg-purple-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  }`}
+                  onClick={() => { toggleNotebook(notebook.id); dispatch({ type: 'SET_ACTIVE_NOTEBOOK', id: notebook.id }); }}
+                  onContextMenu={e => handleContextMenu(e, notebook.id, 'notebook')}
+                >
+                  <button
+                    onClick={e => { e.stopPropagation(); toggleNotebook(notebook.id); }}
+                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                  >
+                    <svg className={`w-3 h-3 text-gray-500 transition-transform ${expandedNotebooks.has(notebook.id) ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
                   </button>
-                ))}
-                {showNewFolder ? (
-                  <div className="flex items-center gap-1 px-2 py-1">
-                    <input type="text" value={newFolderName} onChange={e => setNewFolderName(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') { onCreateFolder(newFolderName.trim()); setNewFolderName(''); setShowNewFolder(false); } if (e.key === 'Escape') setShowNewFolder(false); }}
-                      placeholder="Folder name..." className="flex-1 text-xs px-2 py-1 border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:border-blue-500" autoFocus />
-                    <button onClick={() => { onCreateFolder(newFolderName.trim()); setNewFolderName(''); setShowNewFolder(false); }} className="text-blue-600 text-xs font-medium">Add</button>
+                  <div className="w-4 h-4 rounded flex-shrink-0" style={{ backgroundColor: notebook.color }} />
+                  {editingId === notebook.id ? (
+                    <input
+                      ref={inputRef}
+                      value={editValue}
+                      onChange={e => setEditValue(e.target.value)}
+                      onBlur={commitRename}
+                      onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingId(null); }}
+                      className="flex-1 text-sm bg-white dark:bg-gray-700 border border-purple-300 rounded px-1 py-0.5 focus:outline-none dark:text-white"
+                      onClick={e => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{notebook.name}</span>
+                  )}
+                  <span className="text-[10px] text-gray-400">{notebook.sections.length}</span>
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      const name = prompt('Section name:');
+                      if (name?.trim()) {
+                        dispatch({ type: 'CREATE_SECTION', notebookId: notebook.id, name: name.trim(), color: COLORS[(notebook.sections.length + 3) % COLORS.length] });
+                        setExpandedNotebooks(prev => new Set([...prev, notebook.id]));
+                      }
+                    }}
+                    className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded opacity-0 group-hover:opacity-100"
+                    title="Add section"
+                  >
+                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Sections */}
+                {expandedNotebooks.has(notebook.id) && (
+                  <div className="ml-4 mt-1 space-y-0.5">
+                    {notebook.sections.map(section => (
+                      <div key={section.id}>
+                        {/* Section header */}
+                        <div
+                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${
+                            state.activeSectionId === section.id ? 'bg-purple-50 dark:bg-purple-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                          }`}
+                          onClick={() => {
+                            dispatch({ type: 'SET_ACTIVE_NOTEBOOK', id: notebook.id });
+                            dispatch({ type: 'SET_ACTIVE_SECTION', id: section.id });
+                            if (section.pages[0]) dispatch({ type: 'SET_ACTIVE_PAGE', id: section.pages[0].id });
+                          }}
+                          onContextMenu={e => handleContextMenu(e, section.id, 'section')}
+                        >
+                          <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: section.color }} />
+                          {editingId === section.id ? (
+                            <input
+                              ref={inputRef}
+                              value={editValue}
+                              onChange={e => setEditValue(e.target.value)}
+                              onBlur={commitRename}
+                              onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingId(null); }}
+                              className="flex-1 text-xs bg-white dark:bg-gray-700 border border-purple-300 rounded px-1 py-0.5 focus:outline-none dark:text-white"
+                              onClick={e => e.stopPropagation()}
+                            />
+                          ) : (
+                            <span className="flex-1 text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{section.name}</span>
+                          )}
+                          <span className="text-[10px] text-gray-400">{section.pages.length}</span>
+                        </div>
+
+                        {/* Pages */}
+                        {state.activeSectionId === section.id && (
+                          <div className="ml-4 mt-0.5 space-y-0.5">
+                            {section.pages.map(page => (
+                              <div
+                                key={page.id}
+                                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${
+                                  state.activePageId === page.id ? 'bg-purple-100 dark:bg-purple-900/30 border-l-2 border-purple-500' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                }`}
+                                onClick={() => dispatch({ type: 'SET_ACTIVE_PAGE', id: page.id })}
+                                onContextMenu={e => handleContextMenu(e, page.id, 'page')}
+                              >
+                                <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <div className="flex-1 min-w-0">
+                                  {editingId === page.id ? (
+                                    <input
+                                      ref={inputRef}
+                                      value={editValue}
+                                      onChange={e => setEditValue(e.target.value)}
+                                      onBlur={commitRename}
+                                      onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingId(null); }}
+                                      className="w-full text-xs bg-white dark:bg-gray-700 border border-purple-300 rounded px-1 py-0.5 focus:outline-none dark:text-white"
+                                      onClick={e => e.stopPropagation()}
+                                    />
+                                  ) : (
+                                    <>
+                                      <div className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{page.title || 'Untitled'}</div>
+                                      <div className="text-[10px] text-gray-400 truncate">{page.content.replace(/[#*`>\-\[\]]/g, '').slice(0, 40) || 'Empty page'}</div>
+                                      <div className="text-[10px] text-gray-400">{formatDate(page.updatedAt)}</div>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            {/* Add page button */}
+                            <button
+                              onClick={() => {
+                                dispatch({ type: 'CREATE_PAGE', notebookId: notebook.id, sectionId: section.id, title: 'New Page' });
+                              }}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              Add page
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <button onClick={() => setShowNewFolder(true)} className="w-full flex items-center gap-2 px-3 py-1 text-xs text-gray-400 hover:text-blue-600 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
-                    <Plus size={12} /> New folder
-                  </button>
                 )}
               </div>
-            )}
+            ))}
           </div>
-        )}
-
-        {/* Tags */}
-        {allTags.length > 0 && !state.showTrash && (
-          <div className="border-b border-gray-100 dark:border-gray-700">
-            <button onClick={() => setExpandedSections(p => ({ ...p, tags: !p.tags }))}
-              className="w-full flex items-center gap-1 px-3 py-1.5 text-[10px] text-gray-400 uppercase tracking-wider hover:bg-gray-50 dark:hover:bg-gray-800">
-              {expandedSections.tags ? <ChevronDown size={12} /> : <ChevronRight size={12} />} Tags
-            </button>
-            {expandedSections.tags && (
-              <div className="px-2 pb-2 flex flex-wrap gap-1">
-                {allTags.map(tag => (
-                  <button key={tag} onClick={() => onSelectTag(state.activeTag === tag ? null : tag)}
-                    className={`px-2 py-0.5 text-[10px] rounded-full transition-colors ${
-                      state.activeTag === tag ? 'text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`} style={state.activeTag === tag ? { background: state.accentColor } : {}}>
-                    <Tag size={8} className="inline mr-0.5" />{tag}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Note list */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="px-3 py-1.5 flex items-center justify-between">
-            <span className="text-[10px] text-gray-400 uppercase tracking-wider">
-              {state.showTrash ? `${trash.length} in trash` : `${displayNotes.length} note${displayNotes.length !== 1 ? 's' : ''}`}
-            </span>
-            {state.showTrash && trash.length > 0 && (
-              <button onClick={onEmptyTrash} className="text-[10px] text-red-500 hover:text-red-700">Empty Trash</button>
-            )}
-            {!state.showTrash && displayNotes.length > 0 && (
-              <button onClick={onSelectAll} className="text-[10px] text-blue-600 hover:text-blue-800">Select All</button>
-            )}
-          </div>
-          {displayNotes.length === 0 ? (
-            <div className="p-4 text-center text-gray-400 text-xs">
-              {state.showTrash ? 'Trash is empty' : state.searchQuery ? 'No matching notes' : 'No notes'}
-            </div>
-          ) : state.showTrash ? (
-            displayNotes.map(note => (
-              <div key={note.id} className="px-3 py-2 border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm text-gray-600 dark:text-gray-300 truncate">{note.title || 'Untitled'}</h3>
-                  <p className="text-[10px] text-gray-400">{formatDate(note.updatedAt)}</p>
-                </div>
-                <button onClick={() => onRestoreNote(note.id)} className="px-2 py-1 text-[10px] text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">Restore</button>
-              </div>
-            ))
-          ) : (
-            displayNotes.map(note => (
-              <div key={note.id} ref={note.id === state.activeNoteId ? activeNoteRef : undefined}>
-                <NoteItem
-                  note={note} isActive={note.id === state.activeNoteId} isSelected={state.selectedNoteIds.includes(note.id)}
-                  onSelect={() => onSelectNote(note.id)}
-                  onTogglePin={() => onTogglePin(note.id)}
-                  onToggleFavorite={() => onToggleFavorite(note.id)}
-                  onDelete={() => onDeleteNote(note.id)}
-                  onDuplicate={() => onDuplicateNote(note.id)}
-                  onToggleSelect={() => onToggleSelect(note.id)}
-                />
-              </div>
-            ))
-          )}
         </div>
       </aside>
+
+      {/* Context menu */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-1 min-w-[140px]"
+          style={{ left: Math.min(contextMenu.x, window.innerWidth - 160), top: Math.min(contextMenu.y, window.innerHeight - 200) }}
+        >
+          <button
+            onClick={() => { startRename(contextMenu.id, findName(state, contextMenu.id)); }}
+            className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            Rename
+          </button>
+          {(contextMenu.type === 'notebook' || contextMenu.type === 'section') && (
+            <button
+              onClick={() => { setShowColorPicker({ id: contextMenu.id, type: contextMenu.type }); setContextMenu(null); }}
+              className="w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+              Change color
+            </button>
+          )}
+          <hr className="my-1 dark:border-gray-700" />
+          <button
+            onClick={() => {
+              if (confirm('Delete this item?')) {
+                if (contextMenu.type === 'notebook') dispatch({ type: 'DELETE_NOTEBOOK', id: contextMenu.id });
+                else if (contextMenu.type === 'section') {
+                  const nb = state.notebooks.find(n => n.sections.some(s => s.id === contextMenu.id));
+                  if (nb) dispatch({ type: 'DELETE_SECTION', notebookId: nb.id, sectionId: contextMenu.id });
+                } else if (contextMenu.type === 'page') {
+                  for (const nb of state.notebooks) {
+                    for (const sec of nb.sections) {
+                      if (sec.pages.some(p => p.id === contextMenu.id)) {
+                        dispatch({ type: 'DELETE_PAGE', notebookId: nb.id, sectionId: sec.id, pageId: contextMenu.id });
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+              setContextMenu(null);
+            }}
+            className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            Delete
+          </button>
+        </div>
+      )}
+
+      {/* Color picker modal */}
+      {showColorPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowColorPicker(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-medium mb-3 dark:text-white">Choose color</h3>
+            <div className="grid grid-cols-5 gap-2">
+              {COLORS.map(color => (
+                <button
+                  key={color}
+                  onClick={() => {
+                    if (showColorPicker.type === 'notebook') {
+                      dispatch({ type: 'UPDATE_NOTEBOOK', id: showColorPicker.id, updates: { color } });
+                    } else {
+                      const nb = state.notebooks.find(n => n.sections.some(s => s.id === showColorPicker.id));
+                      if (nb) dispatch({ type: 'UPDATE_SECTION', notebookId: nb.id, sectionId: showColorPicker.id, updates: { color } });
+                    }
+                    setShowColorPicker(null);
+                  }}
+                  className="w-8 h-8 rounded-lg border-2 border-white dark:border-gray-700 shadow hover:scale-110 transition-transform"
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
-};
+}
 
-export default Sidebar;
+function findName(state: AppState, id: string): string {
+  for (const nb of state.notebooks) {
+    if (nb.id === id) return nb.name;
+    for (const sec of nb.sections) {
+      if (sec.id === id) return sec.name;
+      for (const pg of sec.pages) {
+        if (pg.id === id) return pg.title;
+      }
+    }
+  }
+  return '';
+}
+
+// Search results component
+function SearchResults({ state, dispatch, query }: { state: AppState; dispatch: React.Dispatch<any>; query: string }) {
+  const q = query.toLowerCase();
+  const results: { notebook: Notebook; section: Section; page: { id: string; title: string; content: string; updatedAt: number } }[] = [];
+  
+  for (const nb of state.notebooks) {
+    for (const sec of nb.sections) {
+      for (const pg of sec.pages) {
+        if (pg.title.toLowerCase().includes(q) || pg.content.toLowerCase().includes(q)) {
+          results.push({ notebook: nb, section: sec, page: pg });
+        }
+      }
+    }
+  }
+
+  if (results.length === 0) {
+    return <div className="p-4 text-center text-sm text-gray-400">No results found</div>;
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="px-2 py-1 text-[10px] text-gray-400 uppercase">{results.length} result{results.length !== 1 ? 's' : ''}</div>
+      {results.map(({ notebook, section, page }) => (
+        <button
+          key={page.id}
+          onClick={() => {
+            dispatch({ type: 'SET_ACTIVE_NOTEBOOK', id: notebook.id });
+            dispatch({ type: 'SET_ACTIVE_SECTION', id: section.id });
+            dispatch({ type: 'SET_ACTIVE_PAGE', id: page.id });
+          }}
+          className="w-full text-left px-3 py-2 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+        >
+          <div className="text-[10px] text-gray-400">{notebook.name} › {section.name}</div>
+          <div className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{page.title}</div>
+          <div className="text-[10px] text-gray-400 truncate">{page.content.replace(/[#*`>\-\[\]]/g, '').slice(0, 60)}</div>
+        </button>
+      ))}
+    </div>
+  );
+}
