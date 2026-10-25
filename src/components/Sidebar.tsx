@@ -87,7 +87,7 @@ export default function Sidebar({ state, dispatch, activeNotebook, activeSection
       <aside className={`fixed md:relative z-40 h-full transition-all duration-200 ${
         state.sidebarOpen ? 'w-80 translate-x-0' : 'w-0 -translate-x-full md:w-0 md:-translate-x-full'
       } overflow-hidden flex-shrink-0`}>
-        <div className="h-full w-80 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-r border-white/20 dark:border-gray-700/50 flex flex-col">
+        <div className="h-full w-80 glass-panel border-r border-white/20 dark:border-gray-700/50 flex flex-col">
           {/* Search */}
           <div className="p-3 border-b border-gray-200/50 dark:border-gray-700/50">
             <div className="relative">
@@ -114,7 +114,7 @@ export default function Sidebar({ state, dispatch, activeNotebook, activeSection
                   dispatch({ type: 'CREATE_NOTEBOOK', name: name.trim(), color: COLORS[state.notebooks.length % COLORS.length] });
                 }
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 mb-2 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-colors"
+              className="tap-target w-full flex items-center gap-2 px-3 py-2 mb-2 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl btn-lift"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -132,7 +132,7 @@ export default function Sidebar({ state, dispatch, activeNotebook, activeSection
               <div key={notebook.id} className="mb-1">
                 {/* Notebook header */}
                 <div
-                  className={`flex items-center gap-2 px-2 py-2 rounded-xl cursor-pointer transition-colors ${
+                  className={`tap-target flex items-center gap-2 px-2 py-2 rounded-xl cursor-pointer btn-lift ${
                     state.activeNotebookId === notebook.id ? 'bg-purple-50 dark:bg-purple-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                   }`}
                   onClick={() => { toggleNotebook(notebook.id); dispatch({ type: 'SET_ACTIVE_NOTEBOOK', id: notebook.id }); }}
@@ -186,7 +186,7 @@ export default function Sidebar({ state, dispatch, activeNotebook, activeSection
                       <div key={section.id}>
                         {/* Section header */}
                         <div
-                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${
+                          className={`tap-target flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer btn-lift ${
                             state.activeSectionId === section.id ? 'bg-purple-50 dark:bg-purple-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                           }`}
                           onClick={() => {
@@ -219,7 +219,7 @@ export default function Sidebar({ state, dispatch, activeNotebook, activeSection
                             {section.pages.map(page => (
                               <div
                                 key={page.id}
-                                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${
+                                className={`tap-target flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer btn-lift ${
                                   state.activePageId === page.id ? 'bg-purple-100 dark:bg-purple-900/30 border-l-2 border-purple-500' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                                 }`}
                                 onClick={() => dispatch({ type: 'SET_ACTIVE_PAGE', id: page.id })}
@@ -254,7 +254,7 @@ export default function Sidebar({ state, dispatch, activeNotebook, activeSection
                               onClick={() => {
                                 dispatch({ type: 'CREATE_PAGE', notebookId: notebook.id, sectionId: section.id, title: 'New Page' });
                               }}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                              className="tap-target w-full flex items-center gap-2 px-2 py-2 text-xs text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg btn-lift"
                             >
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

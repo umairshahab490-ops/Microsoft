@@ -37,7 +37,7 @@ export default function Editor({ activePage, activeSection, activeNotebook, onUp
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Breadcrumb */}
-      <div className="px-6 py-2 bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl border-b border-white/20 dark:border-gray-700/50 flex-shrink-0">
+      <div className="glass-panel px-6 py-2 border-b border-white/20 dark:border-gray-700/50 flex-shrink-0">
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
           <div className="w-3 h-3 rounded" style={{ backgroundColor: activeNotebook.color }} />
           <span>{activeNotebook.name}</span>
@@ -76,8 +76,8 @@ export default function Editor({ activePage, activeSection, activeNotebook, onUp
 
       {/* Preview (toggle with button) */}
       {activePage.content && (
-        <details className="mx-6 mb-4 bg-white/50 dark:bg-gray-800/50 backdrop-blur-xl rounded-xl border border-white/20 dark:border-gray-700/50">
-          <summary className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-white/30 dark:hover:bg-gray-700/30 rounded-xl transition-colors">
+        <details className="mx-6 mb-4 glass-panel rounded-2xl overflow-hidden">
+          <summary className="px-4 py-3 text-xs font-medium text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors btn-lift">
             📖 Preview rendered markdown
           </summary>
           <div
