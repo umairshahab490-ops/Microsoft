@@ -2,19 +2,20 @@ import { useCallback, useEffect, useRef } from 'react';
 import Toolbar from './components/Toolbar';
 import Sidebar from './components/Sidebar';
 import Editor from './components/Editor';
-import { ExportModal, TemplatesModal, SettingsModal, ShortcutsModal } from './components/Modals';
+import { ExportModal, TemplatesModal, SettingsModal, ShortcutsModal, CommandPalette, CheatsheetModal, StatsModal, VersionsModal, EmojiPickerModal, QuickNoteModal, PomodoroModal, TOCModal } from './components/Modals';
 import { useStore } from './store/useStore';
 import { insertMarkdownSyntax, importMarkdownFile, replaceInText } from './utils';
-import { Folder } from './types';
+import { Folder, SortBy, SortDir } from './types';
 
 export default function App() {
   const { state, dispatch, activeNote, filteredNotes, allTags } = useStore();
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Actions ────────────────────────────────────────────────
+  const toggle = (modal: string) => dispatch({ type: 'TOGGLE_MODAL', modal });
+
   const createNote = useCallback(() => dispatch({ type: 'CREATE_NOTE' }), [dispatch]);
-  const deleteNote = useCallback((id: string) => dispatch({ type: 'DELETE_NOTE', id }), [dispatch]);
+  const deleteNote = useCallback((id: string) => dispatch({ type: 'TRASH_NOTE', id }), [dispatch]);
   const duplicateNote = useCallback((id: string) => dispatch({ type: 'DUPLICATE_NOTE', id }), [dispatch]);
   const togglePreview = useCallback(() => dispatch({ type: 'TOGGLE_PREVIEW' }), [dispatch]);
   const toggleFullscreen = useCallback(() => dispatch({ type: 'TOGGLE_FULLSCREEN' }), [dispatch]);
@@ -54,10 +55,7 @@ export default function App() {
 
   const handleReplace = useCallback((all: boolean) => {
     if (!activeNote) return;
-    const newContent = replaceInText(
-      activeNote.content, state.findQuery, state.replaceQuery,
-      state.findCaseSensitive, state.findRegex, all
-    );
+    const newContent = replaceInText(activeNote.content, state.findQuery, state.replaceQuery, state.findCaseSensitive, state.findRegex, all);
     dispatch({ type: 'PUSH_UNDO', content: activeNote.content });
     dispatch({ type: 'UPDATE_NOTE', id: activeNote.id, updates: { content: newContent } });
   }, [activeNote, state.findQuery, state.findCaseSensitive, state.findRegex, state.replaceQuery, dispatch]);
@@ -68,6 +66,25 @@ export default function App() {
       dispatch({ type: 'IMPORT_NOTES', notes });
       dispatch({ type: 'SET_ACTIVE_NOTE', id: notes[0].id });
     }
+  }, [dispatch]);
+
+  const handleRestoreData = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result as string);
+          dispatch({ type: 'RESTORE_DATA', data });
+        } catch { alert('Invalid backup file'); }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   }, [dispatch]);
 
   const togglePin = useCallback((id: string) => {
@@ -82,30 +99,20 @@ export default function App() {
 
   const addTag = useCallback((tag: string) => {
     if (!activeNote) return;
-    const tags = [...activeNote.tags, tag];
-    dispatch({ type: 'UPDATE_NOTE', id: activeNote.id, updates: { tags } });
+    dispatch({ type: 'UPDATE_NOTE', id: activeNote.id, updates: { tags: [...activeNote.tags, tag] } });
   }, [activeNote, dispatch]);
 
   const removeTag = useCallback((tag: string) => {
     if (!activeNote) return;
-    const tags = activeNote.tags.filter(t => t !== tag);
-    dispatch({ type: 'UPDATE_NOTE', id: activeNote.id, updates: { tags } });
+    dispatch({ type: 'UPDATE_NOTE', id: activeNote.id, updates: { tags: activeNote.tags.filter(t => t !== tag) } });
   }, [activeNote, dispatch]);
 
   const createFolder = useCallback((name: string) => {
     const colors = ['#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899'];
     const icons = ['📁', '📂', '🗂️', '📋', '📌', '🎯'];
     const idx = state.folders.length % colors.length;
-    const folder: Folder = {
-      id: Date.now().toString(36),
-      name,
-      color: colors[idx],
-      icon: icons[idx],
-    };
-    dispatch({ type: 'CREATE_FOLDER', folder });
+    dispatch({ type: 'CREATE_FOLDER', folder: { id: Date.now().toString(36), name, color: colors[idx], icon: icons[idx] } });
   }, [state.folders, dispatch]);
-
-  const deleteFolder = useCallback((id: string) => dispatch({ type: 'DELETE_FOLDER', id }), [dispatch]);
 
   const navigateNotes = useCallback((dir: number) => {
     const idx = filteredNotes.findIndex(n => n.id === state.activeNoteId);
@@ -116,20 +123,28 @@ export default function App() {
     }
   }, [filteredNotes, state.activeNoteId, dispatch]);
 
-  // ── Keyboard Shortcuts ─────────────────────────────────────
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       const ctrl = e.ctrlKey || e.metaKey;
       const shift = e.shiftKey;
 
-      // Escape
       if (e.key === 'Escape') {
-        if (state.isFullscreen) { dispatch({ type: 'TOGGLE_FULLSCREEN' }); return; }
-        if (state.showSettings) { dispatch({ type: 'TOGGLE_SETTINGS' }); return; }
-        if (state.showShortcuts) { dispatch({ type: 'TOGGLE_SHORTCUTS' }); return; }
-        if (state.showExport) { dispatch({ type: 'TOGGLE_EXPORT' }); return; }
-        if (state.showTemplates) { dispatch({ type: 'TOGGLE_TEMPLATES' }); return; }
-        if (state.showFindReplace) { dispatch({ type: 'TOGGLE_FIND_REPLACE' }); return; }
+        if (state.isFullscreen) dispatch({ type: 'TOGGLE_FULLSCREEN' });
+        else if (state.showCommandPalette) toggle('CommandPalette');
+        else if (state.showSettings) toggle('Settings');
+        else if (state.showShortcuts) toggle('Shortcuts');
+        else if (state.showExport) toggle('Export');
+        else if (state.showTemplates) toggle('Templates');
+        else if (state.showFindReplace) toggle('FindReplace');
+        else if (state.showCheatsheet) toggle('Cheatsheet');
+        else if (state.showStats) toggle('Stats');
+        else if (state.showVersions) toggle('Versions');
+        else if (state.showEmojiPicker) toggle('EmojiPicker');
+        else if (state.showQuickNote) toggle('QuickNote');
+        else if (state.showPomodoro) toggle('Pomodoro');
+        else if (state.showTOC) toggle('TOC');
+        else if (state.isFocusMode) dispatch({ type: 'TOGGLE_FOCUS_MODE' });
         return;
       }
 
@@ -138,109 +153,114 @@ export default function App() {
       if (e.key === 'n' && !shift) { e.preventDefault(); createNote(); }
       else if (e.key === 'p' && !shift) { e.preventDefault(); if (activeNote) togglePreview(); }
       else if (e.key === 'f' && !shift) { e.preventDefault(); document.getElementById('search-input')?.focus(); }
-      else if (e.key === 'h') { e.preventDefault(); dispatch({ type: 'TOGGLE_FIND_REPLACE' }); }
+      else if (e.key === 'h') { e.preventDefault(); toggle('FindReplace'); }
+      else if (e.key === 'k') { e.preventDefault(); toggle('CommandPalette'); }
       else if (e.key === 'd' && !shift) { e.preventDefault(); if (activeNote) deleteNote(activeNote.id); }
-      else if (e.key === 'd' && shift) { e.preventDefault(); if (activeNote) duplicateNote(activeNote.id); }
-      else if (e.key === 'e') { e.preventDefault(); dispatch({ type: 'TOGGLE_EXPORT' }); }
+      else if (e.key === 'D' && shift) { e.preventDefault(); if (activeNote) duplicateNote(activeNote.id); }
+      else if (e.key === 'e') { e.preventDefault(); toggle('Export'); }
       else if (e.key === '\\') { e.preventDefault(); toggleSidebar(); }
       else if (e.key === 'F' && shift) { e.preventDefault(); toggleFullscreen(); }
+      else if (e.key === 'S' && shift) { e.preventDefault(); dispatch({ type: 'TOGGLE_SPLIT_VIEW' }); }
+      else if (e.key === 'T' && shift) { e.preventDefault(); dispatch({ type: 'TOGGLE_FOCUS_MODE' }); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); navigateNotes(-1); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); navigateNotes(1); }
       else if (e.key === 'z' && !shift) { e.preventDefault(); undo(); }
       else if (e.key === 'y') { e.preventDefault(); redo(); }
-      else if (e.key === 'b' && !shift) {
-        if (document.activeElement?.tagName !== 'INPUT') {
-          e.preventDefault(); insertMarkdown('bold');
-        }
-      }
-      else if (e.key === 'i' && !shift) {
-        if (document.activeElement?.tagName !== 'INPUT') {
-          e.preventDefault(); insertMarkdown('italic');
-        }
-      }
+      else if (e.key === 'b' && !shift && document.activeElement?.tagName !== 'INPUT') { e.preventDefault(); insertMarkdown('bold'); }
+      else if (e.key === 'i' && !shift && document.activeElement?.tagName !== 'INPUT') { e.preventDefault(); insertMarkdown('italic'); }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [state.isFullscreen, state.showSettings, state.showShortcuts, state.showExport, state.showTemplates, state.showFindReplace, activeNote, createNote, togglePreview, toggleSidebar, toggleFullscreen, deleteNote, duplicateNote, navigateNotes, undo, redo, insertMarkdown, dispatch]);
+  }, [state, activeNote, createNote, togglePreview, toggleSidebar, toggleFullscreen, deleteNote, duplicateNote, navigateNotes, undo, redo, insertMarkdown, dispatch]);
 
-  // ── Render ─────────────────────────────────────────────────
+  // Command palette handler
+  const executeCommand = useCallback((cmd: string) => {
+    toggle('CommandPalette');
+    switch (cmd) {
+      case 'new': createNote(); break;
+      case 'preview': togglePreview(); break;
+      case 'split': dispatch({ type: 'TOGGLE_SPLIT_VIEW' }); break;
+      case 'focus': dispatch({ type: 'TOGGLE_FOCUS_MODE' }); break;
+      case 'fullscreen': toggleFullscreen(); break;
+      case 'dark': dispatch({ type: 'TOGGLE_DARK' }); break;
+      case 'export': toggle('Export'); break;
+      case 'templates': toggle('Templates'); break;
+      case 'settings': toggle('Settings'); break;
+      case 'shortcuts': toggle('Shortcuts'); break;
+      case 'cheatsheet': toggle('Cheatsheet'); break;
+      case 'stats': toggle('Stats'); break;
+      case 'versions': toggle('Versions'); break;
+      case 'pomodoro': toggle('Pomodoro'); break;
+      case 'toc': toggle('TOC'); break;
+      case 'backup': dispatch({ type: 'BACKUP_DATA' }); break;
+      case 'restore': handleRestoreData(); break;
+      case 'sidebar': toggleSidebar(); break;
+      case 'find': toggle('FindReplace'); break;
+    }
+  }, [createNote, togglePreview, toggleFullscreen, toggleSidebar, dispatch, handleRestoreData]);
+
   return (
     <div className={`h-screen w-screen flex flex-col overflow-hidden ${state.isDark ? 'dark' : ''}`}>
       <div className="h-full flex flex-col bg-white dark:bg-[#1e1e1e] text-gray-900 dark:text-gray-100">
-        {/* Toolbar */}
-        {!state.isFullscreen && (
+        {!state.isFocusMode && !state.isFullscreen && (
           <Toolbar
-            isPreview={state.isPreview}
-            isFullscreen={state.isFullscreen}
-            sidebarOpen={state.sidebarOpen}
+            state={state}
             hasActiveNote={!!activeNote}
-            fontSize={state.fontSize}
-            fontFamily={state.fontFamily}
             onTogglePreview={togglePreview}
             onToggleFullscreen={toggleFullscreen}
             onToggleSidebar={toggleSidebar}
+            onToggleSplitView={() => dispatch({ type: 'TOGGLE_SPLIT_VIEW' })}
+            onToggleFocusMode={() => dispatch({ type: 'TOGGLE_FOCUS_MODE' })}
             onNewNote={createNote}
-            onDeleteNote={() => activeNote && deleteNote(activeNote.id)}
+            onDeleteNote={() => { if (activeNote) deleteNote(activeNote.id); }}
             onInsertMarkdown={insertMarkdown}
             onUndo={undo}
             onRedo={redo}
             onFontSizeChange={(s) => dispatch({ type: 'SET_FONT_SIZE', size: s })}
             onFontFamilyChange={(f) => dispatch({ type: 'SET_FONT_FAMILY', family: f })}
-            onToggleFindReplace={() => dispatch({ type: 'TOGGLE_FIND_REPLACE' })}
-            onToggleExport={() => dispatch({ type: 'TOGGLE_EXPORT' })}
-            onToggleSettings={() => dispatch({ type: 'TOGGLE_SETTINGS' })}
-            onToggleShortcuts={() => dispatch({ type: 'TOGGLE_SHORTCUTS' })}
-            onToggleTemplates={() => dispatch({ type: 'TOGGLE_TEMPLATES' })}
+            onToggle={toggle}
             onImport={handleImport}
           />
         )}
 
-        {/* Main */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Sidebar */}
-          {!state.isFullscreen && (
+          {!state.isFocusMode && !state.isFullscreen && (
             <Sidebar
               notes={filteredNotes}
+              trash={state.trash}
               folders={state.folders}
               allTags={allTags}
-              activeId={state.activeNoteId}
-              activeFolderId={state.activeFolderId}
-              activeTag={state.activeTag}
-              showFavorites={state.showFavorites}
-              searchQuery={state.searchQuery}
-              sortBy={state.sortBy}
-              sortDir={state.sortDir}
-              isOpen={state.sidebarOpen}
+              state={state}
               onToggle={toggleSidebar}
               onSearchChange={(q) => dispatch({ type: 'SET_SEARCH', query: q })}
               onSelectNote={(id) => dispatch({ type: 'SET_ACTIVE_NOTE', id })}
               onSelectFolder={(id) => dispatch({ type: 'SET_ACTIVE_FOLDER', id })}
               onSelectTag={(tag) => dispatch({ type: 'SET_ACTIVE_TAG', tag })}
               onToggleFavorites={() => dispatch({ type: 'TOGGLE_FAVORITES' })}
-              onSortChange={(by, dir) => dispatch({ type: 'SET_SORT', by: by as any, dir: dir as any })}
+              onToggleArchived={() => dispatch({ type: 'TOGGLE_ARCHIVED' })}
+              onToggleTrash={() => dispatch({ type: 'TOGGLE_TRASH_VIEW' })}
+              onSortChange={(by: SortBy, dir: SortDir) => dispatch({ type: 'SET_SORT', by, dir })}
               onCreateFolder={createFolder}
-              onDeleteFolder={deleteFolder}
+              onDeleteFolder={(id) => dispatch({ type: 'DELETE_FOLDER', id })}
               onTogglePin={togglePin}
               onToggleFavorite={toggleFavorite}
               onDeleteNote={deleteNote}
               onDuplicateNote={duplicateNote}
+              onRestoreNote={(id) => dispatch({ type: 'RESTORE_NOTE', id })}
+              onEmptyTrash={() => dispatch({ type: 'EMPTY_TRASH' })}
+              onToggleSelect={(id) => dispatch({ type: 'TOGGLE_SELECT', id })}
+              onSelectAll={() => dispatch({ type: 'SELECT_ALL' })}
+              onClearSelection={() => dispatch({ type: 'CLEAR_SELECTION' })}
+              onBulkDelete={() => dispatch({ type: 'BULK_DELETE' })}
+              onBulkArchive={() => dispatch({ type: 'BULK_ARCHIVE' })}
+              onBulkTag={(tag) => dispatch({ type: 'BULK_TAG', tag })}
             />
           )}
 
-          {/* Editor */}
           {activeNote ? (
             <Editor
               note={activeNote}
-              isPreview={state.isPreview}
-              fontSize={state.fontSize}
-              fontFamily={state.fontFamily}
-              showLineNumbers={state.showLineNumbers}
-              wordWrap={state.wordWrap}
-              showFindReplace={state.showFindReplace}
-              findQuery={state.findQuery}
-              replaceQuery={state.replaceQuery}
-              findCaseSensitive={state.findCaseSensitive}
-              findRegex={state.findRegex}
+              state={state}
               onContentChange={updateContent}
               onTitleChange={updateTitle}
               onPushUndo={pushUndo}
@@ -249,10 +269,11 @@ export default function App() {
               onToggleFindCase={() => dispatch({ type: 'TOGGLE_FIND_CASE' })}
               onToggleFindRegex={() => dispatch({ type: 'TOGGLE_FIND_REGEX' })}
               onReplace={handleReplace}
-              onCloseFindReplace={() => dispatch({ type: 'TOGGLE_FIND_REPLACE' })}
+              onCloseFindReplace={() => toggle('FindReplace')}
               editorRef={editorRef}
               onTagAdd={addTag}
               onTagRemove={removeTag}
+              onToggle={toggle}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-[#1e1e1e]">
@@ -270,16 +291,22 @@ export default function App() {
           )}
         </div>
 
-        {/* Fullscreen exit bar */}
         {state.isFullscreen && (
           <div className="absolute top-2 right-2 z-50">
-            <button onClick={toggleFullscreen} className="px-3 py-1 bg-black/50 text-white text-xs rounded-full hover:bg-black/70 transition-colors">
-              Press Esc to exit fullscreen
+            <button onClick={toggleFullscreen} className="px-3 py-1 bg-black/50 text-white text-xs rounded-full hover:bg-black/70">
+              Press Esc to exit
             </button>
           </div>
         )}
 
-        {/* Auto-save indicator */}
+        {state.isFocusMode && (
+          <div className="absolute top-2 right-2 z-50">
+            <button onClick={() => dispatch({ type: 'TOGGLE_FOCUS_MODE' })} className="px-3 py-1 bg-black/50 text-white text-xs rounded-full hover:bg-black/70">
+              Press Esc to exit focus mode
+            </button>
+          </div>
+        )}
+
         <div className={`fixed bottom-4 right-4 z-50 px-2 py-1 rounded text-[10px] transition-all duration-300 ${
           state.autoSaveStatus === 'saved' ? 'opacity-0 pointer-events-none' : 'opacity-100'
         } ${state.autoSaveStatus === 'saving' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
@@ -288,17 +315,18 @@ export default function App() {
       </div>
 
       {/* Modals */}
-      <ExportModal isOpen={state.showExport} onClose={() => dispatch({ type: 'TOGGLE_EXPORT' })} note={activeNote} allNotes={state.notes} />
-      <TemplatesModal isOpen={state.showTemplates} onClose={() => dispatch({ type: 'TOGGLE_TEMPLATES' })} onApply={(t) => dispatch({ type: 'APPLY_TEMPLATE', template: t })} />
-      <SettingsModal
-        isOpen={state.showSettings} onClose={() => dispatch({ type: 'TOGGLE_SETTINGS' })}
-        isDark={state.isDark} onToggleDark={() => dispatch({ type: 'TOGGLE_DARK' })}
-        fontSize={state.fontSize} onFontSizeChange={(s) => dispatch({ type: 'SET_FONT_SIZE', size: s })}
-        fontFamily={state.fontFamily} onFontFamilyChange={(f) => dispatch({ type: 'SET_FONT_FAMILY', family: f })}
-        showLineNumbers={state.showLineNumbers} onToggleLineNumbers={() => dispatch({ type: 'TOGGLE_LINE_NUMBERS' })}
-        wordWrap={state.wordWrap} onToggleWordWrap={() => dispatch({ type: 'TOGGLE_WORD_WRAP' })}
-      />
-      <ShortcutsModal isOpen={state.showShortcuts} onClose={() => dispatch({ type: 'TOGGLE_SHORTCUTS' })} />
+      <ExportModal isOpen={state.showExport} onClose={() => toggle('Export')} note={activeNote} allNotes={state.notes} />
+      <TemplatesModal isOpen={state.showTemplates} onClose={() => toggle('Templates')} onApply={(t) => dispatch({ type: 'APPLY_TEMPLATE', template: t })} />
+      <SettingsModal isOpen={state.showSettings} onClose={() => toggle('Settings')} state={state} dispatch={dispatch} />
+      <ShortcutsModal isOpen={state.showShortcuts} onClose={() => toggle('Shortcuts')} />
+      <CommandPalette isOpen={state.showCommandPalette} onClose={() => toggle('CommandPalette')} query={state.commandQuery} onQueryChange={(q) => dispatch({ type: 'SET_COMMAND_QUERY', query: q })} onExecute={executeCommand} />
+      <CheatsheetModal isOpen={state.showCheatsheet} onClose={() => toggle('Cheatsheet')} />
+      <StatsModal isOpen={state.showStats} onClose={() => toggle('Stats')} notes={state.notes} />
+      <VersionsModal isOpen={state.showVersions} onClose={() => toggle('Versions')} note={activeNote} onSave={(label) => activeNote && dispatch({ type: 'SAVE_VERSION', id: activeNote.id, label })} onRestore={(vid) => activeNote && dispatch({ type: 'RESTORE_VERSION', noteId: activeNote.id, versionId: vid })} />
+      <EmojiPickerModal isOpen={state.showEmojiPicker} onClose={() => toggle('EmojiPicker')} onSelect={(emoji) => { if (activeNote) { dispatch({ type: 'UPDATE_NOTE', id: activeNote.id, updates: { content: activeNote.content + emoji } }); } toggle('EmojiPicker'); }} />
+      <QuickNoteModal isOpen={state.showQuickNote} onClose={() => toggle('QuickNote')} onSave={(title, content) => { dispatch({ type: 'CREATE_NOTE' }); setTimeout(() => { if (activeNote) { dispatch({ type: 'UPDATE_NOTE', id: activeNote.id, updates: { title, content } }); } }, 50); }} />
+      <PomodoroModal isOpen={state.showPomodoro} onClose={() => toggle('Pomodoro')} state={state} dispatch={dispatch} />
+      <TOCModal isOpen={state.showTOC} onClose={() => toggle('TOC')} content={activeNote?.content || ''} editorRef={editorRef} />
     </div>
   );
 }

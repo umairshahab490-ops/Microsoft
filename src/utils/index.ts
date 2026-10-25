@@ -211,6 +211,10 @@ export function importMarkdownFile(): Promise<Note[]> {
               tags: [],
               pinned: false,
               favorite: false,
+              archived: false,
+              versions: [],
+              wordGoal: 0,
+              color: '',
             });
           };
           reader.readAsText(file);
