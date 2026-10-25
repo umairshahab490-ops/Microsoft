@@ -1,13 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Sidebar from './components/Sidebar';
-import Editor from './components/Editor';
-import Toolbar from './components/Toolbar';
+import RichEditor from './components/RichEditor';
 import { useStore } from './store/useStore';
-import { insertMarkdownSyntax } from './utils';
 
 export default function App() {
   const { state, dispatch, activeNotebook, activeSection, activePage } = useStore();
-  const editorRef = useRef<HTMLTextAreaElement>(null);
   const [showSettings, setShowSettings] = useState(false);
 
   const updateContent = useCallback((content: string) => {
@@ -34,27 +31,6 @@ export default function App() {
     }
   }, [activeNotebook, activeSection, activePage, dispatch]);
 
-  const handleInsertMarkdown = useCallback((syntax: string) => {
-    const textarea = editorRef.current;
-    if (!textarea || !activePage) return;
-    
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const { newContent, cursorPos } = insertMarkdownSyntax(
-      activePage.content,
-      start,
-      end,
-      syntax
-    );
-    
-    updateContent(newContent);
-    
-    requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.setSelectionRange(cursorPos, cursorPos);
-    });
-  }, [activePage, updateContent]);
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -71,25 +47,11 @@ export default function App() {
           });
         }
       }
-      
-      if (ctrl && e.key === 'b') {
-        if (document.activeElement?.tagName !== 'INPUT') {
-          e.preventDefault();
-          handleInsertMarkdown('bold');
-        }
-      }
-      
-      if (ctrl && e.key === 'i') {
-        if (document.activeElement?.tagName !== 'INPUT') {
-          e.preventDefault();
-          handleInsertMarkdown('italic');
-        }
-      }
     };
     
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [activeNotebook, activeSection, dispatch, handleInsertMarkdown]);
+  }, [activeNotebook, activeSection, dispatch]);
 
   return (
     <div className={`h-screen w-screen flex flex-col overflow-hidden bg-blobs ${state.isDark ? 'dark' : ''}`}>
@@ -147,14 +109,6 @@ export default function App() {
                 <kbd className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300">Ctrl+N</kbd>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Bold</span>
-                <kbd className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300">Ctrl+B</kbd>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Italic</span>
-                <kbd className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300">Ctrl+I</kbd>
-              </div>
-              <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-300">Toggle sidebar</span>
                 <kbd className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-700 dark:text-gray-300">Click ☰</kbd>
               </div>
@@ -172,24 +126,12 @@ export default function App() {
           />
           
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Floating toolbar */}
-            {activePage && (
-              <div className="px-4 pt-3 flex-shrink-0">
-                <Toolbar
-                  onInsertMarkdown={handleInsertMarkdown}
-                  disabled={false}
-                />
-              </div>
-            )}
-            
-            {/* Editor */}
-            <Editor
+            <RichEditor
               activePage={activePage}
               activeSection={activeSection}
               activeNotebook={activeNotebook}
               onUpdateContent={updateContent}
               onUpdateTitle={updateTitle}
-              editorRef={editorRef}
             />
           </div>
         </div>

@@ -3,7 +3,7 @@
 export interface Page {
   id: string;
   title: string;
-  content: string;
+  content: string; // HTML content for rich text
   createdAt: number;
   updatedAt: number;
 }
